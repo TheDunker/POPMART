@@ -211,13 +211,15 @@
         
         // --- VIEW SWITCHING ---
         function showView(viewName) {
+            // Hide all views
             Object.values(allViews).forEach(view => {
-                const viewEl = document.getElementById(view.id);
-                if (viewEl) viewEl.classList.add('hidden');
+                if (view) {
+                    view.classList.add('hidden');
+                }
             });
+            // Show the requested view
             if (allViews[viewName]) {
-                 const viewEl = document.getElementById(allViews[viewName].id);
-                 if(viewEl) viewEl.classList.remove('hidden');
+                allViews[viewName].classList.remove('hidden');
             }
         }
 
