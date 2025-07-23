@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POP MART Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Kanit', sans-serif; }
+        .countdown-container { background-color: #FEEAE6; color: #E85D04; padding: 1rem; border-radius: 0.5rem; text-align: center; margin-bottom: 1rem; }
+        .countdown-text { font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem; }
+        .countdown-timer { font-size: 1.5rem; letter-spacing: 0.2rem; }
+        .warning-banner { background-color: #DC2626; color: white; padding: 0.75rem 1rem; text-align: center; font-size: 0.875rem; }
+        .open-time-container { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; background-color: #F3F4F6; border-bottom: 1px solid #E5E7EB; }
+        .branch-btn.selected { background-color: #FBBF24; color: white; border-color: #FBBF24; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #FBBF24; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 1rem auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .calendar-date.selected { background-color: #EF4444; color: white; }
+        .calendar-date.disabled { color: #D1D5DB; cursor: not-allowed; }
+
+        .captcha-image { position: relative; cursor: pointer; }
+        .captcha-image .overlay { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.4); }
+        .captcha-image .checkmark { display: none; position: absolute; top: 8px; left: 8px; width: 24px; height: 24px; background-color: #3B82F6; color: white; border-radius: 50%; }
+        .captcha-image.selected .overlay, .captcha-image.selected .checkmark { display: flex; align-items: center; justify-content: center; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+        .shake { animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both; }
+
+        /* Slide-up Panel Styles */
+        #branch-panel {
+            transform: translateY(100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        #branch-panel.is-open {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-pink-200 via-purple-200 to-blue-300 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white rounded-2xl shadow-lg w-full max-w-md overflow-hidden relative">
+        <header class="bg-black p-4 flex justify-center">
+            <img src="https://placehold.co/150x50/000000/FFFFFF?text=POP+MART&font=kanit" alt="POP MART Logo" class="h-8">
+        </header>
+
+        <!-- Views Container -->
+        <div id="views-container">
+            <!-- Pre-Booking View (Countdown) -->
+            <div id="pre-booking-view">
+                <div class="warning-banner"><p>กรุณาลงทะเบียนโดยใช้อุปกรณ์เพียงเครื่องเดียวเท่านั้นไม่งั้น Session ของท่านอาจถูกล็อคได้</p></div>
+                <div class="open-time-container">
+                    <span id="open-time-text" class="text-gray-600 font-medium text-sm"></span>
+                    <button id="register-button" class="bg-gray-300 text-gray-500 font-bold py-2 px-4 rounded-lg cursor-not-allowed" disabled>Register</button>
+                </div>
+                <div class="p-4">
+                     <div class="countdown-container">
+                        <p id="countdown-date-text" class="countdown-text"></p>
+                        <p class="countdown-text">Store Registration Opens In:</p>
+                        <div class="countdown-timer" id="countdown">--:--:--:--</div>
+                    </div>
+                </div>
+                 <img src="https://placehold.co/600x300/F7D8E6/333333?text=CRYBABY+CHEER+UP,+BABY!" alt="CRYBABY CHEER UP, BABY! Series" class="w-full h-auto">
+            </div>
+
+            <!-- Captcha View -->
+            <div id="captcha-view" class="hidden">
+                <div class="p-6">
+                    <p class="font-semibold text-lg mb-4">เลือกทุกภาพที่มี นาฬิกา</p>
+                    <div id="captcha-grid" class="grid grid-cols-3 gap-2 mb-4"></div>
+                    <button id="verify-captcha-btn" class="w-full bg-yellow-400 text-white font-bold py-3 rounded-lg transition hover:bg-yellow-500">ยืนยัน</button>
+                </div>
+            </div>
+
+            <!-- Date & Time Selection View -->
+            <div id="date-time-view" class="hidden">
+                <div class="p-6">
+                     <div class="mb-4">
+                        <div class="flex items-center text-gray-600 mb-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg><span class="font-semibold">Select Date & Time Booking</span></div>
+                        <div id="calendar-container" class="mt-2">
+                            <div class="flex justify-between items-center mb-2">
+                                <button id="prev-month" class="p-2 rounded-full hover:bg-gray-100">&lt;</button>
+                                <h3 id="month-year" class="font-bold text-lg"></h3>
+                                <button id="next-month" class="p-2 rounded-full hover:bg-gray-100">&gt;</button>
+                            </div>
+                            <div class="grid grid-cols-7 text-center text-sm text-gray-500">
+                                <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+                            </div>
+                            <div id="calendar-dates" class="grid grid-cols-7 text-center mt-2"></div>
+                        </div>
+                    </div>
+                    <div id="time-slot-section" class="hidden">
+                        <div class="mb-6">
+                            <div class="flex items-center text-gray-600 mb-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span class="font-semibold">รอบเวลา / Time Slot</span></div>
+                            <div id="time-slots" class="grid grid-cols-3 gap-3 text-center">
+                                <button class="time-slot bg-gray-200 text-gray-400 rounded-lg p-3 cursor-not-allowed" disabled>10:00</button>
+                                <button class="time-slot bg-white border border-gray-300 text-gray-700 rounded-lg p-3 hover:bg-gray-100 transition">11:00</button>
+                                <button class="time-slot bg-white border border-gray-300 text-gray-700 rounded-lg p-3 hover:bg-gray-100 transition">12:00</button>
+                            </div>
+                        </div>
+                        <button id="select-time-button" class="w-full bg-yellow-400 text-white font-bold py-3 rounded-lg transition hover:bg-yellow-500 disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>Confirm Details</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Confirmation View -->
+            <div id="confirmation-view" class="hidden">
+                <div class="p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 border-l-4 border-red-500 pl-3">Confirm Information</h2>
+                    <div id="confirmation-details" class="space-y-3 mb-6"></div>
+                    <div id="confirmation-loader" class="loader"></div>
+                    <div id="final-confirmation-section" class="hidden">
+                        <div class="mb-4">
+                            <label class="flex items-center"><input type="checkbox" id="terms-checkbox" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"><span class="ml-2 text-gray-700">ยอมรับ ข้อตกลง & เงื่อนไข</span></label>
+                        </div>
+                        <div class="mb-6 p-3 border rounded-md flex items-center justify-between bg-gray-50">
+                             <label class="flex items-center"><input type="checkbox" id="human-checkbox" class="h-6 w-6 text-blue-600 border-gray-300 rounded focus:ring-blue-500"><span class="ml-3 font-semibold text-gray-700">I am human</span></label>
+                            <img src="https://placehold.co/100x40/f3f4f6/000000?text=Cloudflare" alt="Captcha logo" class="h-8">
+                        </div>
+                        <button id="final-confirm-button" class="w-full bg-red-500 text-white font-bold py-3 rounded-lg transition disabled:bg-red-300 disabled:cursor-not-allowed" disabled>Confirm Booking</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Final Success View -->
+            <div id="final-success-view" class="hidden">
+                 <div class="p-6 text-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Booking Complete!</h2>
+                    <p class="text-gray-600 mb-4">Your spot is reserved!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overlay -->
+        <div id="overlay" class="hidden absolute inset-0 bg-black bg-opacity-50 z-10"></div>
+
+        <!-- Branch Selection Panel (Slide-up) -->
+        <div id="branch-panel" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-6 z-20">
+            <div class="mb-4">
+                <div class="flex items-center text-gray-600 mb-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg><span class="font-semibold">สาขา / Branch</span></div>
+                <div id="branch-selection" class="grid grid-cols-1 gap-3">
+                    <button class="branch-btn w-full p-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 transition">Siam Center</button>
+                    <button class="branch-btn w-full p-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 transition">CentralWorld</button>
+                    <button class="branch-btn w-full p-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 transition">Fashion Island</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM ELEMENTS ---
+        const allViews = {
+            preBooking: document.getElementById('pre-booking-view'),
+            captcha: document.getElementById('captcha-view'),
+            dateTime: document.getElementById('date-time-view'),
+            confirmation: document.getElementById('confirmation-view'),
+            finalSuccess: document.getElementById('final-success-view')
+        };
+        const registerButton = document.getElementById('register-button');
+        const overlay = document.getElementById('overlay');
+        const branchPanel = document.getElementById('branch-panel');
+        const branchSelection = document.getElementById('branch-selection');
+        const captchaGrid = document.getElementById('captcha-grid');
+        const verifyCaptchaBtn = document.getElementById('verify-captcha-btn');
+        const timeSlotSection = document.getElementById('time-slot-section');
+        const timeSlotsContainer = document.getElementById('time-slots');
+        const selectTimeButton = document.getElementById('select-time-button');
+        const finalConfirmButton = document.getElementById('final-confirm-button');
+        const termsCheckbox = document.getElementById('terms-checkbox');
+        const humanCheckbox = document.getElementById('human-checkbox');
+        const countdownDisplay = document.getElementById('countdown');
+        const openTimeText = document.getElementById('open-time-text');
+        const countdownDateText = document.getElementById('countdown-date-text');
+        const confirmationDetails = document.getElementById('confirmation-details');
+        const confirmationLoader = document.getElementById('confirmation-loader');
+        const finalConfirmationSection = document.getElementById('final-confirmation-section');
+        const monthYearEl = document.getElementById('month-year');
+        const calendarDatesEl = document.getElementById('calendar-dates');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+
+        // --- STATE ---
+        let bookingState = { branch: '', date: null, time: '' };
+        let calendarState = { date: new Date(2025, 6, 1), availableDates: [23, 24] };
+        
+        const captchaPool = {
+            correct: [
+                { src: 'https://placehold.co/100x100/2E8B57/FFFFFF?text=Clock', correct: true },
+                { src: 'https://placehold.co/100x100/4682B4/FFFFFF?text=Clock', correct: true },
+                { src: 'https://placehold.co/100x100/DC143C/FFFFFF?text=Clock', correct: true },
+                { src: 'https://placehold.co/100x100/FFD700/000000?text=Clock', correct: true },
+                { src: 'https://placehold.co/100x100/1E90FF/FFFFFF?text=Clock', correct: true }
+            ],
+            incorrect: [
+                { src: 'https://placehold.co/100x100/663399/FFFFFF?text=Cat', correct: false },
+                { src: 'https://placehold.co/100x100/D2691E/FFFFFF?text=Car', correct: false },
+                { src: 'https://placehold.co/100x100/008B8B/FFFFFF?text=Tree', correct: false },
+                { src: 'https://placehold.co/100x100/FF69B4/FFFFFF?text=Food', correct: false },
+                { src: 'https://placehold.co/100x100/8A2BE2/FFFFFF?text=Sun', correct: false },
+                { src: 'https://placehold.co/100x100/6495ED/FFFFFF?text=Moon', correct: false }
+            ]
+        };
+
+        let captchaState = {
+            images: [],
+            correctIndices: []
+        };
+        
+        // --- VIEW SWITCHING ---
+        function showView(viewName) {
+            Object.values(allViews).forEach(view => {
+                const viewEl = document.getElementById(view.id);
+                if (viewEl) viewEl.classList.add('hidden');
+            });
+            if (allViews[viewName]) {
+                 const viewEl = document.getElementById(allViews[viewName].id);
+                 if(viewEl) viewEl.classList.remove('hidden');
+            }
+        }
+
+        // --- SHUFFLE FUNCTION ---
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // --- CAPTCHA LOGIC ---
+        function renderCaptcha() {
+            // Determine how many correct images to show (randomly 3, 4, or 5)
+            const numCorrect = Math.floor(Math.random() * 3) + 3;
+            const numIncorrect = 9 - numCorrect;
+
+            // Create the image set for this round
+            shuffleArray(captchaPool.correct);
+            shuffleArray(captchaPool.incorrect);
+
+            const correctImages = captchaPool.correct.slice(0, numCorrect);
+            const incorrectImages = captchaPool.incorrect.slice(0, numIncorrect);
+
+            captchaState.images = [...correctImages, ...incorrectImages];
+            shuffleArray(captchaState.images);
+
+            // Recalculate correct indices
+            captchaState.correctIndices = [];
+            captchaState.images.forEach((img, index) => {
+                if (img.correct) {
+                    captchaState.correctIndices.push(index);
+                }
+            });
+
+            // Render the grid
+            captchaGrid.innerHTML = '';
+            captchaState.images.forEach((imgData, index) => {
+                captchaGrid.insertAdjacentHTML('beforeend', `<div class="captcha-image rounded-lg overflow-hidden" data-index="${index}"><img src="${imgData.src}" alt="Captcha image ${index + 1}" class="w-full h-full object-cover"><div class="overlay"></div><div class="checkmark"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></div></div>`);
+            });
+        }
+
+        captchaGrid.addEventListener('click', (e) => e.target.closest('.captcha-image')?.classList.toggle('selected'));
+        
+        verifyCaptchaBtn.addEventListener('click', () => {
+            const selectedIndices = Array.from(captchaGrid.querySelectorAll('.captcha-image.selected')).map(el => parseInt(el.dataset.index));
+            if (JSON.stringify(selectedIndices.sort()) === JSON.stringify(captchaState.correctIndices.sort())) {
+                showView('dateTime');
+                renderCalendar();
+            } else {
+                allViews.captcha.classList.add('shake');
+                setTimeout(() => allViews.captcha.classList.remove('shake'), 820);
+                renderCaptcha();
+            }
+        });
+
+        // --- CALENDAR LOGIC ---
+        function renderCalendar() {
+            const date = calendarState.date;
+            monthYearEl.textContent = `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`;
+            calendarDatesEl.innerHTML = '';
+            const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+            const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+            for (let i = 0; i < firstDayOfMonth; i++) calendarDatesEl.insertAdjacentHTML('beforeend', '<div></div>');
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayEl = document.createElement('div');
+                dayEl.textContent = i;
+                dayEl.classList.add('p-2', 'rounded-full', 'cursor-pointer', 'calendar-date');
+                if (date.getFullYear() === 2025 && date.getMonth() === 6 && calendarState.availableDates.includes(i)) {
+                    dayEl.addEventListener('click', () => {
+                        document.querySelectorAll('.calendar-date.selected').forEach(el => el.classList.remove('selected'));
+                        dayEl.classList.add('selected');
+                        bookingState.date = new Date(date.getFullYear(), date.getMonth(), i);
+                        timeSlotSection.classList.remove('hidden');
+                    });
+                } else dayEl.classList.add('disabled');
+                calendarDatesEl.appendChild(dayEl);
+            }
+        }
+        prevMonthBtn.addEventListener('click', () => { calendarState.date.setMonth(calendarState.date.getMonth() - 1); renderCalendar(); });
+        nextMonthBtn.addEventListener('click', () => { calendarState.date.setMonth(calendarState.date.getMonth() + 1); renderCalendar(); });
+
+        // --- COUNTDOWN TIMER LOGIC ---
+        const countDownDate = new Date("July 23, 2025 03:15:00");
+        const formatDateDisplay = (d) => d.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' }).replace(/ /g, ' ');
+        const formatTimeDisplay = (d) => { const p = (n) => String(n).padStart(2, '0'); return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; };
+        openTimeText.textContent = `Open: ${countDownDate.toISOString().slice(0, 10)} ${formatTimeDisplay(countDownDate)}`;
+        countdownDateText.textContent = formatDateDisplay(countDownDate);
+
+        const countdownInterval = setInterval(() => {
+            const distance = countDownDate - new Date().getTime();
+            if (distance < 0) {
+                clearInterval(countdownInterval);
+                countdownDisplay.innerHTML = "OPEN";
+                registerButton.disabled = false;
+                registerButton.classList.replace('bg-gray-300', 'bg-green-500');
+                registerButton.classList.replace('text-gray-500', 'text-white');
+                registerButton.classList.replace('cursor-not-allowed', 'hover:bg-green-600');
+                return;
+            }
+            const p = (n) => String(n).padStart(2, '0');
+            countdownDisplay.innerHTML = `${p(Math.floor(distance/864e5))}:${p(Math.floor((distance%864e5)/36e5))}:${p(Math.floor((distance%36e5)/6e4))}:${p(Math.floor((distance%6e4)/1e3))}`;
+        }, 1000);
+
+        // --- BOOKING FLOW LOGIC ---
+        registerButton.addEventListener('click', () => {
+            overlay.classList.remove('hidden');
+            branchPanel.classList.add('is-open');
+        });
+        overlay.addEventListener('click', () => {
+            overlay.classList.add('hidden');
+            branchPanel.classList.remove('is-open');
+        });
+        branchSelection.addEventListener('click', (event) => {
+            const clickedButton = event.target.closest('.branch-btn');
+            if (!clickedButton) return;
+            bookingState.branch = clickedButton.textContent;
+            overlay.classList.add('hidden');
+            branchPanel.classList.remove('is-open');
+            showView('captcha');
+            renderCaptcha();
+        });
+        timeSlotsContainer.addEventListener('click', (event) => {
+            const clickedButton = event.target.closest('.time-slot');
+            if (clickedButton && !clickedButton.disabled) {
+                bookingState.time = clickedButton.textContent;
+                document.querySelectorAll('.time-slot:not(:disabled)').forEach(slot => slot.classList.remove('bg-yellow-400', 'text-white', 'border-yellow-400'));
+                clickedButton.classList.add('bg-yellow-400', 'text-white', 'border-yellow-400');
+                selectTimeButton.disabled = false;
+            }
+        });
+        selectTimeButton.addEventListener('click', () => {
+            showView('confirmation');
+            confirmationDetails.innerHTML = `
+                <p><span class="font-semibold">Event:</span><br> ${formatDateDisplay(bookingState.date)} Store Registration.</p>
+                <p class="border-t pt-3 mt-3"><span class="font-semibold">Details:</span><br> ${bookingState.date.toISOString().slice(0,10)} (${bookingState.time})</p>
+                <p class="border-t pt-3 mt-3"><span class="font-semibold">Branch:</span><br> ${bookingState.branch}</p>
+            `;
+            confirmationLoader.classList.remove('hidden');
+            finalConfirmationSection.classList.add('hidden');
+            setTimeout(() => {
+                confirmationLoader.classList.add('hidden');
+                finalConfirmationSection.classList.remove('hidden');
+            }, 2000);
+        });
+        
+        function checkFinalConfirmation() {
+            finalConfirmButton.disabled = !(humanCheckbox.checked && termsCheckbox.checked);
+        }
+        humanCheckbox.addEventListener('change', checkFinalConfirmation);
+        termsCheckbox.addEventListener('change', checkFinalConfirmation);
+
+        finalConfirmButton.addEventListener('click', () => showView('finalSuccess'));
+
+        // --- INITIAL VIEW ---
+        showView('preBooking');
+
+    </script>
+</body>
+</html>
