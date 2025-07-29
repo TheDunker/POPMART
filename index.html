@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Cloudflare Turnstile Script -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         body { font-family: 'Kanit', sans-serif; }
         .countdown-container { background-color: #FEEAE6; color: #E85D04; padding: 1rem; border-radius: 0.5rem; text-align: center; margin-bottom: 1rem; }
@@ -29,14 +31,8 @@
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
         .shake { animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both; }
 
-        /* Slide-up Panel Styles */
-        #branch-panel {
-            transform: translateY(100%);
-            transition: transform 0.3s ease-in-out;
-        }
-        #branch-panel.is-open {
-            transform: translateY(0);
-        }
+        #branch-panel { transform: translateY(100%); transition: transform 0.3s ease-in-out; }
+        #branch-panel.is-open { transform: translateY(0); }
     </style>
 </head>
 <body class="bg-gradient-to-br from-pink-200 via-purple-200 to-blue-300 min-h-screen flex items-center justify-center p-4">
@@ -115,9 +111,9 @@
                         <div class="mb-4">
                             <label class="flex items-center"><input type="checkbox" id="terms-checkbox" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"><span class="ml-2 text-gray-700">ยอมรับ ข้อตกลง & เงื่อนไข</span></label>
                         </div>
-                        <div class="mb-6 p-3 border rounded-md flex items-center justify-between bg-gray-50">
-                             <label class="flex items-center"><input type="checkbox" id="human-checkbox" class="h-6 w-6 text-blue-600 border-gray-300 rounded focus:ring-blue-500"><span class="ml-3 font-semibold text-gray-700">I am human</span></label>
-                            <img src="https://placehold.co/100x40/f3f4f6/000000?text=Cloudflare" alt="Captcha logo" class="h-8">
+                        <!-- Cloudflare Turnstile Widget -->
+                        <div class="mb-6 flex justify-center">
+                            <div class="cf-turnstile" data-sitekey="0x4AAAAAABnGEjxZgRb07o9R" data-callback="onTurnstileSuccess"></div>
                         </div>
                         <button id="final-confirm-button" class="w-full bg-red-500 text-white font-bold py-3 rounded-lg transition disabled:bg-red-300 disabled:cursor-not-allowed" disabled>Confirm Booking</button>
                     </div>
@@ -170,7 +166,6 @@
         const selectTimeButton = document.getElementById('select-time-button');
         const finalConfirmButton = document.getElementById('final-confirm-button');
         const termsCheckbox = document.getElementById('terms-checkbox');
-        const humanCheckbox = document.getElementById('human-checkbox');
         const countdownDisplay = document.getElementById('countdown');
         const openTimeText = document.getElementById('open-time-text');
         const countdownDateText = document.getElementById('countdown-date-text');
@@ -185,6 +180,7 @@
         // --- STATE ---
         let bookingState = { branch: '', date: null, time: '' };
         let calendarState = { date: new Date(2025, 6, 1), availableDates: [23, 24] };
+        let turnstileVerified = false; // New state for Turnstile
         
         const captchaPool = {
             correct: [
@@ -211,13 +207,9 @@
         
         // --- VIEW SWITCHING ---
         function showView(viewName) {
-            // Hide all views
             Object.values(allViews).forEach(view => {
-                if (view) {
-                    view.classList.add('hidden');
-                }
+                if (view) view.classList.add('hidden');
             });
-            // Show the requested view
             if (allViews[viewName]) {
                 allViews[viewName].classList.remove('hidden');
             }
@@ -233,37 +225,24 @@
 
         // --- CAPTCHA LOGIC ---
         function renderCaptcha() {
-            // Determine how many correct images to show (randomly 3, 4, or 5)
             const numCorrect = Math.floor(Math.random() * 3) + 3;
             const numIncorrect = 9 - numCorrect;
-
-            // Create the image set for this round
             shuffleArray(captchaPool.correct);
             shuffleArray(captchaPool.incorrect);
-
             const correctImages = captchaPool.correct.slice(0, numCorrect);
             const incorrectImages = captchaPool.incorrect.slice(0, numIncorrect);
-
             captchaState.images = [...correctImages, ...incorrectImages];
             shuffleArray(captchaState.images);
-
-            // Recalculate correct indices
             captchaState.correctIndices = [];
             captchaState.images.forEach((img, index) => {
-                if (img.correct) {
-                    captchaState.correctIndices.push(index);
-                }
+                if (img.correct) captchaState.correctIndices.push(index);
             });
-
-            // Render the grid
             captchaGrid.innerHTML = '';
             captchaState.images.forEach((imgData, index) => {
                 captchaGrid.insertAdjacentHTML('beforeend', `<div class="captcha-image rounded-lg overflow-hidden" data-index="${index}"><img src="${imgData.src}" alt="Captcha image ${index + 1}" class="w-full h-full object-cover"><div class="overlay"></div><div class="checkmark"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></div></div>`);
             });
         }
-
         captchaGrid.addEventListener('click', (e) => e.target.closest('.captcha-image')?.classList.toggle('selected'));
-        
         verifyCaptchaBtn.addEventListener('click', () => {
             const selectedIndices = Array.from(captchaGrid.querySelectorAll('.captcha-image.selected')).map(el => parseInt(el.dataset.index));
             if (JSON.stringify(selectedIndices.sort()) === JSON.stringify(captchaState.correctIndices.sort())) {
@@ -366,10 +345,16 @@
             }, 2000);
         });
         
-        function checkFinalConfirmation() {
-            finalConfirmButton.disabled = !(humanCheckbox.checked && termsCheckbox.checked);
+        // --- TURNSTILE AND FINAL CONFIRMATION ---
+        function onTurnstileSuccess(token) {
+            console.log("Turnstile success:", token);
+            turnstileVerified = true;
+            checkFinalConfirmation();
         }
-        humanCheckbox.addEventListener('change', checkFinalConfirmation);
+
+        function checkFinalConfirmation() {
+            finalConfirmButton.disabled = !(termsCheckbox.checked && turnstileVerified);
+        }
         termsCheckbox.addEventListener('change', checkFinalConfirmation);
 
         finalConfirmButton.addEventListener('click', () => showView('finalSuccess'));
