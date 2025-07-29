@@ -127,6 +127,7 @@
                     <button class="branch-btn w-full p-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 transition">Fashion Island</button>
                 </div>
             </div>
+            <button id="branch-next-btn" class="w-full bg-yellow-400 text-white font-bold py-3 rounded-lg transition hover:bg-yellow-500 disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>Next</button>
         </div>
     </div>
 
@@ -142,6 +143,7 @@
         const overlay = document.getElementById('overlay');
         const branchPanel = document.getElementById('branch-panel');
         const branchSelection = document.getElementById('branch-selection');
+        const branchNextBtn = document.getElementById('branch-next-btn');
         const timeSlotSection = document.getElementById('time-slot-section');
         const timeSlotsContainer = document.getElementById('time-slots');
         const selectTimeButton = document.getElementById('select-time-button');
@@ -233,12 +235,25 @@
         branchSelection.addEventListener('click', (event) => {
             const clickedButton = event.target.closest('.branch-btn');
             if (!clickedButton) return;
+            
+            // Remove selected state from all buttons
+            document.querySelectorAll('.branch-btn').forEach(btn => btn.classList.remove('selected'));
+            // Add selected state to the clicked button
+            clickedButton.classList.add('selected');
+
             bookingState.branch = clickedButton.textContent;
-            overlay.classList.add('hidden');
-            branchPanel.classList.remove('is-open');
-            showView('dateTime');
-            renderCalendar();
+            branchNextBtn.disabled = false;
         });
+
+        branchNextBtn.addEventListener('click', () => {
+            if (bookingState.branch) {
+                overlay.classList.add('hidden');
+                branchPanel.classList.remove('is-open');
+                showView('dateTime');
+                renderCalendar();
+            }
+        });
+
         timeSlotsContainer.addEventListener('click', (event) => {
             const clickedButton = event.target.closest('.time-slot');
             if (clickedButton && !clickedButton.disabled) {
