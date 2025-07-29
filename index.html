@@ -24,13 +24,6 @@
         .calendar-date.selected { background-color: #EF4444; color: white; }
         .calendar-date.disabled { color: #D1D5DB; cursor: not-allowed; }
 
-        .captcha-image { position: relative; cursor: pointer; }
-        .captcha-image .overlay { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.4); }
-        .captcha-image .checkmark { display: none; position: absolute; top: 8px; left: 8px; width: 24px; height: 24px; background-color: #3B82F6; color: white; border-radius: 50%; }
-        .captcha-image.selected .overlay, .captcha-image.selected .checkmark { display: flex; align-items: center; justify-content: center; }
-        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
-        .shake { animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both; }
-
         #branch-panel { transform: translateY(100%); transition: transform 0.3s ease-in-out; }
         #branch-panel.is-open { transform: translateY(0); }
     </style>
@@ -59,15 +52,6 @@
                     </div>
                 </div>
                  <img src="https://placehold.co/600x300/F7D8E6/333333?text=CRYBABY+CHEER+UP,+BABY!" alt="CRYBABY CHEER UP, BABY! Series" class="w-full h-auto">
-            </div>
-
-            <!-- Captcha View -->
-            <div id="captcha-view" class="hidden">
-                <div class="p-6">
-                    <p class="font-semibold text-lg mb-4">เลือกทุกภาพที่มี นาฬิกา</p>
-                    <div id="captcha-grid" class="grid grid-cols-3 gap-2 mb-4"></div>
-                    <button id="verify-captcha-btn" class="w-full bg-yellow-400 text-white font-bold py-3 rounded-lg transition hover:bg-yellow-500">ยืนยัน</button>
-                </div>
             </div>
 
             <!-- Date & Time Selection View -->
@@ -150,7 +134,6 @@
         // --- DOM ELEMENTS ---
         const allViews = {
             preBooking: document.getElementById('pre-booking-view'),
-            captcha: document.getElementById('captcha-view'),
             dateTime: document.getElementById('date-time-view'),
             confirmation: document.getElementById('confirmation-view'),
             finalSuccess: document.getElementById('final-success-view')
@@ -159,8 +142,6 @@
         const overlay = document.getElementById('overlay');
         const branchPanel = document.getElementById('branch-panel');
         const branchSelection = document.getElementById('branch-selection');
-        const captchaGrid = document.getElementById('captcha-grid');
-        const verifyCaptchaBtn = document.getElementById('verify-captcha-btn');
         const timeSlotSection = document.getElementById('time-slot-section');
         const timeSlotsContainer = document.getElementById('time-slots');
         const selectTimeButton = document.getElementById('select-time-button');
@@ -182,29 +163,6 @@
         let calendarState = { date: new Date(2025, 6, 1), availableDates: [23, 24] };
         let turnstileVerified = false; // New state for Turnstile
         
-        const captchaPool = {
-            correct: [
-                { src: 'https://placehold.co/100x100/2E8B57/FFFFFF?text=Clock', correct: true },
-                { src: 'https://placehold.co/100x100/4682B4/FFFFFF?text=Clock', correct: true },
-                { src: 'https://placehold.co/100x100/DC143C/FFFFFF?text=Clock', correct: true },
-                { src: 'https://placehold.co/100x100/FFD700/000000?text=Clock', correct: true },
-                { src: 'https://placehold.co/100x100/1E90FF/FFFFFF?text=Clock', correct: true }
-            ],
-            incorrect: [
-                { src: 'https://placehold.co/100x100/663399/FFFFFF?text=Cat', correct: false },
-                { src: 'https://placehold.co/100x100/D2691E/FFFFFF?text=Car', correct: false },
-                { src: 'https://placehold.co/100x100/008B8B/FFFFFF?text=Tree', correct: false },
-                { src: 'https://placehold.co/100x100/FF69B4/FFFFFF?text=Food', correct: false },
-                { src: 'https://placehold.co/100x100/8A2BE2/FFFFFF?text=Sun', correct: false },
-                { src: 'https://placehold.co/100x100/6495ED/FFFFFF?text=Moon', correct: false }
-            ]
-        };
-
-        let captchaState = {
-            images: [],
-            correctIndices: []
-        };
-        
         // --- VIEW SWITCHING ---
         function showView(viewName) {
             Object.values(allViews).forEach(view => {
@@ -214,46 +172,6 @@
                 allViews[viewName].classList.remove('hidden');
             }
         }
-
-        // --- SHUFFLE FUNCTION ---
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-        }
-
-        // --- CAPTCHA LOGIC ---
-        function renderCaptcha() {
-            const numCorrect = Math.floor(Math.random() * 3) + 3;
-            const numIncorrect = 9 - numCorrect;
-            shuffleArray(captchaPool.correct);
-            shuffleArray(captchaPool.incorrect);
-            const correctImages = captchaPool.correct.slice(0, numCorrect);
-            const incorrectImages = captchaPool.incorrect.slice(0, numIncorrect);
-            captchaState.images = [...correctImages, ...incorrectImages];
-            shuffleArray(captchaState.images);
-            captchaState.correctIndices = [];
-            captchaState.images.forEach((img, index) => {
-                if (img.correct) captchaState.correctIndices.push(index);
-            });
-            captchaGrid.innerHTML = '';
-            captchaState.images.forEach((imgData, index) => {
-                captchaGrid.insertAdjacentHTML('beforeend', `<div class="captcha-image rounded-lg overflow-hidden" data-index="${index}"><img src="${imgData.src}" alt="Captcha image ${index + 1}" class="w-full h-full object-cover"><div class="overlay"></div><div class="checkmark"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></div></div>`);
-            });
-        }
-        captchaGrid.addEventListener('click', (e) => e.target.closest('.captcha-image')?.classList.toggle('selected'));
-        verifyCaptchaBtn.addEventListener('click', () => {
-            const selectedIndices = Array.from(captchaGrid.querySelectorAll('.captcha-image.selected')).map(el => parseInt(el.dataset.index));
-            if (JSON.stringify(selectedIndices.sort()) === JSON.stringify(captchaState.correctIndices.sort())) {
-                showView('dateTime');
-                renderCalendar();
-            } else {
-                allViews.captcha.classList.add('shake');
-                setTimeout(() => allViews.captcha.classList.remove('shake'), 820);
-                renderCaptcha();
-            }
-        });
 
         // --- CALENDAR LOGIC ---
         function renderCalendar() {
@@ -318,8 +236,8 @@
             bookingState.branch = clickedButton.textContent;
             overlay.classList.add('hidden');
             branchPanel.classList.remove('is-open');
-            showView('captcha');
-            renderCaptcha();
+            showView('dateTime');
+            renderCalendar();
         });
         timeSlotsContainer.addEventListener('click', (event) => {
             const clickedButton = event.target.closest('.time-slot');
