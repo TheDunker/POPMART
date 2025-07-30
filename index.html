@@ -200,16 +200,18 @@
 
         // --- IMAGE CAPTCHA LOGIC ---
         function setupImageCaptcha() {
+            // Assumes you have an 'image' folder in your GitHub repo
+            // with these exact filenames.
             const images = [
-                { src: './images/bed1.jpg', isCorrect: false }, 
-                { src: './images/bag1.jpg', isCorrect: false }, 
-                { src: './images/bed2.jpg', isCorrect: false }, 
-                { src: './images/curtain1.jpg', isCorrect: true }, 
-                { src: './images/curtain2.jpg', isCorrect: true }, 
-                { src: './images/chair1.jpg', isCorrect: false }, 
-                { src: './images/curtain3.jpg', isCorrect: true }, 
-                { src: './images/bag2.jpg', isCorrect: false }, 
-                { src: './images/curtain4.jpg', isCorrect: true }, 
+                { src: './image/bed1.jpg', isCorrect: false }, 
+                { src: './image/bag1.jpg', isCorrect: false }, 
+                { src: './image/bed2.jpg', isCorrect: false }, 
+                { src: './image/curtain1.jpg', isCorrect: true }, 
+                { src: './image/curtain2.jpg', isCorrect: true }, 
+                { src: './image/chair1.jpg', isCorrect: false }, 
+                { src: './image/curtain3.jpg', isCorrect: true }, 
+                { src: './image/bag2.jpg', isCorrect: false }, 
+                { src: './image/curtain4.jpg', isCorrect: true }, 
             ];
             
             shuffleArray(images);
@@ -243,7 +245,7 @@
             const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
             const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
             for (let i = 0; i < firstDayOfMonth; i++) calendarDatesEl.insertAdjacentHTML('beforeend', '<div></div>');
-            for (let i = 1; i <= daysInMonth; i++) {
+            for (let i = 1; i <= days.length; i++) {
                 const dayEl = document.createElement('div');
                 dayEl.textContent = i;
                 dayEl.classList.add('p-2', 'rounded-full', 'cursor-pointer', 'calendar-date');
