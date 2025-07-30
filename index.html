@@ -8,8 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- Google reCAPTCHA Script -->
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <!-- Cloudflare Turnstile Script -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         body { font-family: 'Kanit', sans-serif; }
         .countdown-container { background-color: #FEEAE6; color: #E85D04; padding: 1rem; border-radius: 0.5rem; text-align: center; margin-bottom: 1rem; }
@@ -113,9 +113,9 @@
                         <div class="mb-4">
                             <label class="flex items-center"><input type="checkbox" id="terms-checkbox" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"><span class="ml-2 text-gray-700">ยอมรับ ข้อตกลง & เงื่อนไข</span></label>
                         </div>
-                        <!-- Google reCAPTCHA Widget -->
+                        <!-- Cloudflare Turnstile Widget -->
                         <div class="mb-6 flex justify-center">
-                            <div class="g-recaptcha" data-sitekey="6LfzspQrAAAAAJ_wroVoDGEmfC_FEH56jNL8zp4W" data-callback="onRecaptchaSuccess"></div>
+                            <div class="cf-turnstile" data-sitekey="0x4AAAAAABnGEjxZgRb07o9R" data-callback="onTurnstileSuccess"></div>
                         </div>
                         <button id="final-confirm-button" class="w-full bg-red-500 text-white font-bold py-3 rounded-lg transition disabled:bg-red-300 disabled:cursor-not-allowed" disabled>Confirm Booking</button>
                     </div>
@@ -184,7 +184,7 @@
         // --- STATE ---
         let bookingState = { branch: '', date: null, time: '' };
         let calendarState = { date: new Date(2025, 6, 1), availableDates: [23, 24] };
-        let recaptchaVerified = false;
+        let turnstileVerified = false;
         
         // --- VIEW SWITCHING ---
         function showView(viewName) {
@@ -338,15 +338,15 @@
             }, 2000);
         });
         
-        // --- RECAPTCHA AND FINAL CONFIRMATION ---
-        function onRecaptchaSuccess(token) {
-            console.log("reCAPTCHA success:", token);
-            recaptchaVerified = true;
+        // --- TURNSTILE AND FINAL CONFIRMATION ---
+        function onTurnstileSuccess(token) {
+            console.log("Turnstile success:", token);
+            turnstileVerified = true;
             checkFinalConfirmation();
         }
 
         function checkFinalConfirmation() {
-            finalConfirmButton.disabled = !(termsCheckbox.checked && recaptchaVerified);
+            finalConfirmButton.disabled = !(termsCheckbox.checked && turnstileVerified);
         }
         termsCheckbox.addEventListener('change', checkFinalConfirmation);
 
