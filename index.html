@@ -198,16 +198,18 @@
 
         // --- IMAGE CAPTCHA LOGIC ---
         function setupImageCaptcha() {
+            // Assumes you have an 'images' folder in your GitHub repo
+            // with these exact filenames.
             const images = [
-                { src: 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: false }, // Bed
-                { src: 'https://images.pexels.com/photos/276528/pexels-photo-276528.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: false }, // Bag
-                { src: 'https://images.pexels.com/photos/164595/pexels-photo-164595.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: false }, // Bed
-                { src: 'https://images.pexels.com/photos/1454804/pexels-photo-1454804.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: true }, // Curtain
-                { src: 'https://images.pexels.com/photos/276724/pexels-photo-276724.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: true }, // Curtain
-                { src: 'https://images.pexels.com/photos/1350789/pexels-photo-1350789.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: false }, // Chair
-                { src: 'https://images.pexels.com/photos/1668860/pexels-photo-1668860.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: true }, // Curtain
-                { src: 'https://images.pexels.com/photos/279746/pexels-photo-279746.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: false }, // Bag
-                { src: 'https://images.pexels.com/photos/6782476/pexels-photo-6782476.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: true }, // Curtain
+                { src: './images/bed1.jpg', isCorrect: false }, 
+                { src: './images/bag1.jpg', isCorrect: false }, 
+                { src: './images/bed2.jpg', isCorrect: false }, 
+                { src: './images/curtain1.jpg', isCorrect: true }, 
+                { src: './images/curtain2.jpg', isCorrect: true }, 
+                { src: './images/chair1.jpg', isCorrect: false }, 
+                { src: './images/curtain3.jpg', isCorrect: true }, 
+                { src: './images/bag2.jpg', isCorrect: false }, 
+                { src: './images/curtain4.jpg', isCorrect: true }, 
             ];
             
             shuffleArray(images);
