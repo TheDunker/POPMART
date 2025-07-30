@@ -245,7 +245,7 @@
             const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
             const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
             for (let i = 0; i < firstDayOfMonth; i++) calendarDatesEl.insertAdjacentHTML('beforeend', '<div></div>');
-            for (let i = 1; i <= days.length; i++) {
+            for (let i = 1; i <= daysInMonth; i++) {
                 const dayEl = document.createElement('div');
                 dayEl.textContent = i;
                 dayEl.classList.add('p-2', 'rounded-full', 'cursor-pointer', 'calendar-date');
