@@ -31,6 +31,8 @@
         .captcha-image-container { position: relative; cursor: pointer; }
         .captcha-image-container .overlay { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.4); border: 2px solid #3B82F6; }
         .captcha-image-container.selected .overlay { display: block; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+        .shake { animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both; }
 
     </style>
 </head>
@@ -198,8 +200,6 @@
 
         // --- IMAGE CAPTCHA LOGIC ---
         function setupImageCaptcha() {
-            // Assumes you have an 'images' folder in your GitHub repo
-            // with these exact filenames.
             const images = [
                 { src: './images/bed1.jpg', isCorrect: false }, 
                 { src: './images/bag1.jpg', isCorrect: false }, 
@@ -218,6 +218,7 @@
             images.forEach(imgData => {
                 const imageEl = document.createElement('div');
                 imageEl.className = 'captcha-image-container rounded-lg overflow-hidden';
+                imageEl.dataset.correct = imgData.isCorrect; // Store correctness info
                 imageEl.innerHTML = `<img src="${imgData.src}" class="w-full h-full object-cover"><div class="overlay"></div>`;
                 imageEl.addEventListener('click', () => {
                     imageEl.classList.toggle('selected');
@@ -312,8 +313,28 @@
         });
 
         imageCaptchaConfirmBtn.addEventListener('click', () => {
-            showView('dateTime');
-            renderCalendar();
+            const selectedImages = imageCaptchaGrid.querySelectorAll('.captcha-image-container.selected');
+            const correctImages = imageCaptchaGrid.querySelectorAll('.captcha-image-container[data-correct="true"]');
+            
+            let isCorrect = selectedImages.length === correctImages.length;
+            if (isCorrect) {
+                selectedImages.forEach(img => {
+                    if (img.dataset.correct !== 'true') {
+                        isCorrect = false;
+                    }
+                });
+            }
+
+            if (isCorrect) {
+                showView('dateTime');
+                renderCalendar();
+            } else {
+                const captchaView = document.getElementById('image-captcha-view');
+                captchaView.classList.add('shake');
+                setTimeout(() => captchaView.classList.remove('shake'), 820);
+                // Reset for another try
+                setupImageCaptcha();
+            }
         });
 
         timeSlotsContainer.addEventListener('click', (event) => {
