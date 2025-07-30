@@ -8,8 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- Cloudflare Turnstile Script -->
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <!-- Google reCAPTCHA Script -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
         body { font-family: 'Kanit', sans-serif; }
         .countdown-container { background-color: #FEEAE6; color: #E85D04; padding: 1rem; border-radius: 0.5rem; text-align: center; margin-bottom: 1rem; }
@@ -26,6 +26,12 @@
 
         #branch-panel { transform: translateY(100%); transition: transform 0.3s ease-in-out; }
         #branch-panel.is-open { transform: translateY(0); }
+        
+        /* Image Captcha Styles */
+        .captcha-image-container { position: relative; cursor: pointer; }
+        .captcha-image-container .overlay { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.4); border: 2px solid #3B82F6; }
+        .captcha-image-container.selected .overlay { display: block; }
+
     </style>
 </head>
 <body class="bg-gradient-to-br from-pink-200 via-purple-200 to-blue-300 min-h-screen flex items-center justify-center p-4">
@@ -52,6 +58,18 @@
                     </div>
                 </div>
                  <img src="https://placehold.co/600x300/F7D8E6/333333?text=CRYBABY+CHEER+UP,+BABY!" alt="CRYBABY CHEER UP, BABY! Series" class="w-full h-auto">
+            </div>
+
+            <!-- Image Captcha View -->
+            <div id="image-captcha-view" class="hidden">
+                <div class="p-6">
+                    <h2 class="text-lg font-bold text-center mb-4">Security Verification</h2>
+                    <p class="text-center text-gray-600 mb-4">เลือกทุกภาพที่มี นาฬิกา</p>
+                    <div id="image-captcha-grid" class="grid grid-cols-3 gap-2 mb-4">
+                        <!-- Images will be dynamically added here -->
+                    </div>
+                    <button id="image-captcha-confirm-btn" class="w-full bg-yellow-400 text-white font-bold py-3 rounded-lg transition hover:bg-yellow-500">Confirm</button>
+                </div>
             </div>
 
             <!-- Date & Time Selection View -->
@@ -95,9 +113,9 @@
                         <div class="mb-4">
                             <label class="flex items-center"><input type="checkbox" id="terms-checkbox" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"><span class="ml-2 text-gray-700">ยอมรับ ข้อตกลง & เงื่อนไข</span></label>
                         </div>
-                        <!-- Cloudflare Turnstile Widget -->
+                        <!-- Google reCAPTCHA Widget -->
                         <div class="mb-6 flex justify-center">
-                            <div class="cf-turnstile" data-sitekey="0x4AAAAAABnGEjxZgRb07o9R" data-callback="onTurnstileSuccess"></div>
+                            <div class="g-recaptcha" data-sitekey="6LfzspQrAAAAAJ_wroVoDGEmfC_FEH56jNL8zp4W" data-callback="onRecaptchaSuccess"></div>
                         </div>
                         <button id="final-confirm-button" class="w-full bg-red-500 text-white font-bold py-3 rounded-lg transition disabled:bg-red-300 disabled:cursor-not-allowed" disabled>Confirm Booking</button>
                     </div>
@@ -135,6 +153,7 @@
         // --- DOM ELEMENTS ---
         const allViews = {
             preBooking: document.getElementById('pre-booking-view'),
+            imageCaptcha: document.getElementById('image-captcha-view'),
             dateTime: document.getElementById('date-time-view'),
             confirmation: document.getElementById('confirmation-view'),
             finalSuccess: document.getElementById('final-success-view')
@@ -144,6 +163,8 @@
         const branchPanel = document.getElementById('branch-panel');
         const branchSelection = document.getElementById('branch-selection');
         const branchNextBtn = document.getElementById('branch-next-btn');
+        const imageCaptchaGrid = document.getElementById('image-captcha-grid');
+        const imageCaptchaConfirmBtn = document.getElementById('image-captcha-confirm-btn');
         const timeSlotSection = document.getElementById('time-slot-section');
         const timeSlotsContainer = document.getElementById('time-slots');
         const selectTimeButton = document.getElementById('select-time-button');
@@ -163,7 +184,7 @@
         // --- STATE ---
         let bookingState = { branch: '', date: null, time: '' };
         let calendarState = { date: new Date(2025, 6, 1), availableDates: [23, 24] };
-        let turnstileVerified = false; // New state for Turnstile
+        let recaptchaVerified = false;
         
         // --- VIEW SWITCHING ---
         function showView(viewName) {
@@ -172,6 +193,21 @@
             });
             if (allViews[viewName]) {
                 allViews[viewName].classList.remove('hidden');
+            }
+        }
+
+        // --- IMAGE CAPTCHA LOGIC ---
+        function setupImageCaptcha() {
+            imageCaptchaGrid.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const imageUrl = `https://placehold.co/100x100/eeeeee/333333?text=Image${i+1}`;
+                const imageEl = document.createElement('div');
+                imageEl.className = 'captcha-image-container rounded-lg overflow-hidden';
+                imageEl.innerHTML = `<img src="${imageUrl}" class="w-full h-full object-cover"><div class="overlay"></div>`;
+                imageEl.addEventListener('click', () => {
+                    imageEl.classList.toggle('selected');
+                });
+                imageCaptchaGrid.appendChild(imageEl);
             }
         }
 
@@ -236,9 +272,7 @@
             const clickedButton = event.target.closest('.branch-btn');
             if (!clickedButton) return;
             
-            // Remove selected state from all buttons
             document.querySelectorAll('.branch-btn').forEach(btn => btn.classList.remove('selected'));
-            // Add selected state to the clicked button
             clickedButton.classList.add('selected');
 
             bookingState.branch = clickedButton.textContent;
@@ -249,9 +283,14 @@
             if (bookingState.branch) {
                 overlay.classList.add('hidden');
                 branchPanel.classList.remove('is-open');
-                showView('dateTime');
-                renderCalendar();
+                showView('imageCaptcha'); // Show image captcha instead of date/time
+                setupImageCaptcha();
             }
+        });
+
+        imageCaptchaConfirmBtn.addEventListener('click', () => {
+            showView('dateTime');
+            renderCalendar();
         });
 
         timeSlotsContainer.addEventListener('click', (event) => {
@@ -278,15 +317,15 @@
             }, 2000);
         });
         
-        // --- TURNSTILE AND FINAL CONFIRMATION ---
-        function onTurnstileSuccess(token) {
-            console.log("Turnstile success:", token);
-            turnstileVerified = true;
+        // --- RECAPTCHA AND FINAL CONFIRMATION ---
+        function onRecaptchaSuccess(token) {
+            console.log("reCAPTCHA success:", token);
+            recaptchaVerified = true;
             checkFinalConfirmation();
         }
 
         function checkFinalConfirmation() {
-            finalConfirmButton.disabled = !(termsCheckbox.checked && turnstileVerified);
+            finalConfirmButton.disabled = !(termsCheckbox.checked && recaptchaVerified);
         }
         termsCheckbox.addEventListener('change', checkFinalConfirmation);
 
