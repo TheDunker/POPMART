@@ -198,18 +198,39 @@
 
         // --- IMAGE CAPTCHA LOGIC ---
         function setupImageCaptcha() {
+            const images = [
+                { src: 'https://images.pexels.com/photos/21054/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: true }, // Clock
+                { src: 'https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: false }, // Cat
+                { src: 'https://images.pexels.com/photos/1638096/pexels-photo-1638096.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: true }, // Clock
+                { src: 'https://images.pexels.com/photos/1124625/pexels-photo-1124625.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: false }, // Car
+                { src: 'https://images.pexels.com/photos/277450/pexels-photo-277450.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: true }, // Clock
+                { src: 'https://images.pexels.com/photos/3225517/pexels-photo-3225517.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: false }, // Tree
+                { src: 'https://images.pexels.com/photos/9346610/pexels-photo-9346610.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: true }, // Clock
+                { src: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: false }, // Food
+                { src: 'https://images.pexels.com/photos/1161547/pexels-photo-1161547.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1', isCorrect: true }, // Clock
+            ];
+            
+            shuffleArray(images);
             imageCaptchaGrid.innerHTML = '';
-            for (let i = 0; i < 9; i++) {
-                const imageUrl = `https://placehold.co/100x100/eeeeee/333333?text=Image${i+1}`;
+
+            images.forEach(imgData => {
                 const imageEl = document.createElement('div');
                 imageEl.className = 'captcha-image-container rounded-lg overflow-hidden';
-                imageEl.innerHTML = `<img src="${imageUrl}" class="w-full h-full object-cover"><div class="overlay"></div>`;
+                imageEl.innerHTML = `<img src="${imgData.src}" class="w-full h-full object-cover"><div class="overlay"></div>`;
                 imageEl.addEventListener('click', () => {
                     imageEl.classList.toggle('selected');
                 });
                 imageCaptchaGrid.appendChild(imageEl);
+            });
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
             }
         }
+
 
         // --- CALENDAR LOGIC ---
         function renderCalendar() {
